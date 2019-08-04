@@ -1,4 +1,6 @@
-﻿namespace Blazor.Server.Redux
+﻿using System.Threading.Tasks;
+
+namespace Blazor.Server.Redux
 {
-    public delegate TState Reducer<TState, in TAction>(TState previousState, TAction action);
+    public delegate Task<TState> Reducer<TState, in TAction>(TState previousState, TAction action);
 }

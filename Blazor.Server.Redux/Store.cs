@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Components.Routing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Blazor.Server.Redux
 {
@@ -17,6 +19,7 @@ namespace Blazor.Server.Redux
         private Func<string, TAction> _locationActionCreator;
         private string _currentLocation;
         private readonly object _syncRoot = new object();
+        private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
         #endregion
 
         #region Properties
@@ -46,13 +49,19 @@ namespace Blazor.Server.Redux
         /// Dispatches an action to state.
         /// </summary>
         /// <param name="action">The action.</param>
-        public void Dispatch(TAction action)
+        public async Task Dispatch(TAction action)
         {
-            lock (_syncRoot)
+            await semaphoreSlim.WaitAsync();
+
+            try
             {
-                State = _rootReducer(State, action);
+                State = await _rootReducer(State, action);
                 AddHistoricStateEntry(new HistoricStateEntry<TState, object>(State, action));
                 _future.Clear();
+            }
+            finally
+            {
+                semaphoreSlim.Release();
             }
 
             InvokeOnStateChanged(null);
